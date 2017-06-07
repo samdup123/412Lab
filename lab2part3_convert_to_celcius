@@ -1,0 +1,18 @@
+/*
+* lab2p3.c
+* Program EEPROM with Temperature Table
+* Created: 6/2/2014 2:04:15 PM
+* Author: Eugene Rockey
+*/
+#include <avr/io.h>
+#include <avr/eeprom.h>
+
+uint8_t celcius[20];
+
+int main(void)
+{
+	for(int i = 0; i < 20; i++)
+	{
+		celcius[i] = (5.0/9.0) * (eeprom_read_byte((uint8_t *)i)) + 32; //writing to internal EEPROM as an I/O Device via NVM Controller
+	} 
+}
