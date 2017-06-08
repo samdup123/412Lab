@@ -1,0 +1,271 @@
+/* part 1
+* lab2p1a.asm
+* Positive 8 bit Integer Division
+* Created: 6/8/2017
+
+*/
+;******************************
+;* Declare Varibles
+;******************************
+		.dseg
+quotient:
+		.byte 1 			;uninitialized quotient variable stored in SRAM 
+                                 ;aka data segment
+remainder: 
+		.byte 1 			;uninitialized remainder variable stored in SRAM
+		.set count = 0 		;initialized count variable stored in SRAM
+;******************************
+		.cseg 				;Declare and Initialize Constants (modify them
+                                 ;for different results)
+		.equ dividend = 13 		;8-bit dividend constant (positive integer) 
+                                 ;stored in FLASH memory aka code segment
+		.equ divisor = 3 		;8-bit divisor constant (positive integer) 
+                                 ;stored in FLASH memory
+;******************************
+;* Vector Table (partial)
+;******************************
+reset: 
+		jmp main 			;RESET Vector at address 0x0 in FLASH memory
+                                 ;(handled by MAIN)
+ofail: 
+		jmp oscf 			;Oscillator Failure Vector at address 0x2 in
+                                 ;FLASH memory ()
+
+;******************************
+;* MAIN entry point to program*
+;******************************
+		.org 0x200 			;originate MAIN at address 0x200 in FLASH memory 
+                                 ;(step through the code)
+main: 
+		call init 			;initialize variables subroutine, set break 
+                                 ;point here, check the STACK,SP,PC
+		call getnums 			;Check the STACK,SP,PC here.
+		call test 			;Check the STACK,SP,PC here.
+		call divide 			;Check the STACK,SP,PC here.
+endmain: 
+		jmp endmain
+init: 
+		lds r0,count 			;get initial count, set break point here and
+                                 ;check the STACK,SP,PC
+		sts quotient,r0 		;use the same r0 value to clear the quotientsts
+		sts remainder,r0 		;and the remainder storage locations
+		ret 				;return from subroutine, check the STACK,SP,PC 
+                                 ;here.
+getnums: 
+		ldi r30,dividend 		;Check the STACK,SP,PC here.
+		ldi r31,divisor
+		ret 				;Check the STACK,SP,PC here.
+test: 
+		cpi r30,0 			;is dividend == 0 ?
+		brne test2
+test1: 
+		jmp test1 			;halt program, output = 0 quotient and 0 
+                                 ;remainder
+test2: 
+		cpi r31,0 			;is divisor == 0 ?
+		brne test4
+		ldi r30,0xEE 			;set output to all EE's = Error division by 0
+		sts quotient,r30
+		sts remainder,r30
+test3: 
+		jmp test3 			;halt program, look at output
+test4: 
+		cp r30,r31 			;is dividend == divisor ?
+		brne test6
+		ldi r30,1 			;then set output accordingly
+		sts quotient,r30
+test5: 
+		jmp test5 			;halt program, look at output
+test6: 
+		brpl test8 			;is dividend < divisor ?
+		ser r30
+		sts quotient,r30
+		sts remainder,r30 		;set output to all FF's = not solving Fractions 
+                                 ;in this program
+test7: 
+		jmp test7 			;halt program look at output
+test8: 
+		ret 				;otherwise, return to do positive integer 
+                                 ;division
+divide: 
+	call divSetup
+	call divLoop
+	ret
+
+divSetup:
+		lds r0,count 			;load value of count (0) to r0
+		ret
+divLoop:
+	loopingPoint: 
+		inc r0 			;increments r0 by 1
+		sub r30,r31 			;subtracts r31 from r30 and stores it in r30
+		brpl loopingPoint   	;if result is positive, branch to divide1 and 
+                                 ;subtract again until result is negative
+		dec r0 			;decrements r0 by 1 to indicate that last
+			                ;subraction did not signify a full division 
+		add r30,r31 			;add r30 to r31 and store in r30 to get value of 
+                                 ;remainder
+		sts quotient,r0 		;stores the value in r0 (count) as quotient 
+		sts remainder,r30 		;stores the value in r30 as the remainder
+oscf:
+		jmp oscf 			;oscillator failure interrupt handler goes here.
+		.exit
+
+
+/*            part 2 b
+* lab2p2B.asm
+* Bubble Sort of 20 numbers
+* Created: 6/3/2016 
+* Author: Group 4
+*/
+
+.include "ATxmega256a3budef.inc"
+.equ	SPL = CPU_SPL			;Stack Pntr nomenclature from .inc file variable
+.equ	SPH = CPU_SPH			; “
+
+;* macros
+
+.macro allocStk				;Macro allocates space for local variables
+	in	r28,SPL		
+	in	r29,SPH
+	sbiw	r28,@0
+	out	SPL,r28
+	out	SPH,r29
+.endmacro
+
+.macro deallocStk				;Macro deallocates space used by local variables
+	in	r28,SPL
+	in	r29,SPH
+	adiw	r28,@0
+	out	SPL,r28
+	out	SPH,r29
+.endmacro
+
+	.equ	NN = 20			;Number of elements in data array
+	.def	Ipcnt = r21		 ;Counter assigned to r21
+	.dseg				
+	.org	0x2000		
+array:	.byte	40			; 40 bytes of space in SRAM for array
+	.cseg
+	.org	0x00
+
+;* Vector Table (partial)
+
+	jmp	start			;partial vector table at address 0x0
+	.org	0xF6			;Start entry point at address 0xF6 
+
+;* MAIN entry point to program*
+
+start:	ldi	r20,low(RAMEND)	;Initialize Stack Pointer
+	out	SPL,r20			; "
+	ldi	r20,high(RAMEND)	; "
+	out	SPH,r20			; "
+	ldi	ZL,low(xarr<<1)		;Set-up pointer to array in Program memory
+	ldi	ZH,high(xarr<<1) 	; "
+	ldi	XL,low(array)		;Set-up pointer to buffer array in Data memory
+	ldi	XH,high(array)		; "
+	ldi	Ipcnt,NN			;Setup loop count
+cpLoop:	
+lpm	r0,Z+			;Copy array from Program memory to Data memory for sort
+	st	X+,r0			;Stores register value to X-Pointer, increments pointer
+	dec	Ipcnt			;Decrements count
+	brne	cpLoop
+	ldi	r16,low(array)		;Pass array pointer
+	ldi	r17,high(array)		; "
+	ldi	r18,NN			;Pass array count
+	call	bubble			;Call bubble sort subroutine
+	nop
+again:	rjmp	again			;Loop forever
+
+
+;*	BUBBLE SORT	*
+;	Uses bubble sort algorithm to sort an array in data memory.
+;	Array count is passed in r18 and array pointer passed in r16:r17.
+;	All array elements are positive integers.
+
+	.equ	eCnt = 3			;Iteration count offset from TOS
+	.equ	iCnt = 2			;Inner count offset from TOS
+	.equ	sorted = 1		;Array "already" sorted flag offset from TOS
+	.equ	true = 1
+bubble:	push	YH			;stores contents of Y pointer on stack.
+	push	YL			; "
+	allocStk 3			;Allocates 3 bytes for local variables
+	in	YL,SPL			;Sets Y-pointer to the byte allocated above to top of stack
+	in	YH,SPH			; "
+	dec	r18			;Initial iteration count to NN-1
+	std	Y+eCnt,r18		; "
+eloop:	ldd	r18,Y+eCnt		;Setup inner loop count
+	std	Y+iCnt,r18		; "
+	movw	ZL,r16			;Place array base address in Z
+	ldi	r20,1			;Set flag to indicate that array is sorted
+	std	Y+sorted,r20		; "
+iloop:	ld	r8,Z			;Load or get array[i] element
+	ldd	r9,Z+1			;Load or get array[i+1] element
+	cp	r8,r9			;Compare array[i] with array[i+1]
+	brlo	next			; "
+	st	Z,r9			;Swap array[i] with array[i+1]
+	std	Z+1,r8			; "
+	ldi	r20,0			;Indicate array not sorted
+	std	Y+sorted,r20		; "
+next:	adiw	ZL,1			;Increment array pointer
+	ldd	r20,Y+iCnt		;decrement inner loop count
+	dec	r20			; "
+	std	Y+iCnt,r20		; "
+	brne	iloop			;continue if inner loop count is not 0
+	ldd	r20,Y+sorted		;check array sorted flag
+	cpi	r20,true			; "
+	breq	done			;Stop if sorted flag is true (1)
+	ldd	r20,Y+eCnt		;decrement iteration loop
+	dec	r20			; "
+	std	Y+eCnt,r20		; "
+	brne	eLoop			;
+done:	deallocStk 3			;Dellocates 3 bytes used by variables
+	pop	YL			;loads Y pointer register with byte from stack.
+	pop	YH			;
+	ret				;Return to MAIN or START
+
+;* Data Array - 20 elements- Positive Integers*
+
+xarr:	.db 12,91,20,33,45,72,24,19,17,101
+	.db 11,92,21,34,44,71,25,18,16,131
+
+
+
+
+/*     Part 3a
+* lab2p3.c
+* Program EEPROM with Temperature Table
+* Created: 6/2/2014 2:04:15 PM
+* Author: Eugene Rockey
+*/
+#include <avr/io.h>
+#include <avr/eeprom.h>
+int main(void)
+{ // breakpoint
+	uint8_t fahrenheit[20] = {32,34,36,37,39,41,43,45,46,48,50,52,54,55,57,59,61,63,64,66}; 
+	for(int i = 0; i < 20; i++)
+	{
+		eeprom_write_byte((uint8_t *)i, fahrenheit[i]); //writing to internal EEPROM as an I/O Device via NVM Controller
+	} 
+} //breakpoint
+
+
+
+/*     Part 3b
+* lab2p3.c
+* Program EEPROM with Temperature Table
+* Created: 6/2/2014 2:04:15 PM
+* Author: Eugene Rockey
+*/
+#include <avr/io.h>
+#include <avr/eeprom.h>
+
+uint8_t eepromToSram[20];
+
+int main(void)
+{
+	for(int i = 0; i < 20; i++)
+	{
+		eepromToSram[i] = eeprom_read_byte((uint8_t *)i); 
+	}
+}
