@@ -134,7 +134,7 @@ int main(void)
 				if (convertedNumber_recent >= 0 && convertedNumber_recent <= 9) {
 					return_number = convertedNumber_recent + convertedNumber_previous;
 					
-					if (return_number > 10) {
+					if (return_number >= 10) {
 						returnByte_Ascii = return_number - 10 + '0';
 						usart_putchar(USART_SERIAL_EXAMPLE, newLine);
 						usart_putchar(USART_SERIAL_EXAMPLE, carriageReturn);
