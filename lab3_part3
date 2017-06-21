@@ -1,0 +1,96 @@
+#include <board.h>
+#include <sysclk.h>
+#include <conf_usart_example.h>
+#include <st7565r.h>
+#include <gfx_mono.h>
+#include <gfx_mono_text.h>
+#include <sysfont.h>
+#include <gpio.h>
+
+static void ClearLcdScreen(void) {
+	// This function clears the screen by writing 0x00 over
+	// and over again
+	for (int page_address = 0; page_address <= 4; page_address++) {
+		st7565r_set_page_address(page_address);
+		for (int column_address = 0; column_address < 128; column_address++) {
+			st7565r_set_column_address(column_address);
+			st7565r_write_data(0x00);
+		}
+	}
+}
+
+static void FlashScreen(void) {
+	gpio_set_pin_low(LCD_BACKLIGHT_ENABLE_PIN);
+	delay_ms(4);
+	gpio_set_pin_high(LCD_BACKLIGHT_ENABLE_PIN);
+}
+
+static void InitializeLcdScreen(void) {
+	
+	// initialize the board and clock
+	board_init();
+	sysclk_init();
+
+	// initialize the interface (SPI), ST7565R LCD controller and LCD
+	st7565r_init();
+
+	// set addresses at beginning of display
+	st7565r_set_page_address(0);
+	st7565r_set_column_address(0);
+	
+	// Initialize gfx functionality
+	gfx_mono_init();
+	
+	// Turn on backlight
+	gpio_set_pin_high(LCD_BACKLIGHT_ENABLE_PIN);
+	
+	ClearLcdScreen();
+}
+
+int main(void)
+{
+		char receivedByte_Ascii;
+		//uint8_t returnByte_Ascii;
+		//uint8_t return_number;
+		//uint8_t numberOne = '1';
+		//uint8_t convertedNumber_previous;
+		//uint8_t convertedNumber_recent;
+		//uint8_t newLine = '\n';
+		//uint8_t carriageReturn = '\r';
+		
+	InitializeLcdScreen();
+	
+	static usart_rs232_options_t USART_SERIAL_OPTIONS = {
+		.baudrate = USART_SERIAL_EXAMPLE_BAUDRATE,
+		.charlength = USART_SERIAL_CHAR_LENGTH,
+		.paritytype = USART_SERIAL_PARITY,
+		.stopbits = USART_SERIAL_STOP_BIT
+	};
+	
+	// Initialize usart driver in RS232 mode
+	usart_init_rs232(USART_SERIAL_EXAMPLE, &USART_SERIAL_OPTIONS);
+	
+	int x = 0;
+	int y = 0;
+	
+	while (true) {
+		receivedByte_Ascii = usart_getchar(USART_SERIAL_EXAMPLE);
+		FlashScreen();
+		
+		if (receivedByte_Ascii == '\r') {
+			ClearLcdScreen();
+			x=0;
+			y=0;
+		}
+		else {
+			gfx_mono_draw_char(receivedByte_Ascii, x, y, &sysfont);
+			x += 7;
+		}
+		
+		if ( x == 18 * 7)
+		{
+			x = 0;
+			y += 8;
+		}
+	}
+}
