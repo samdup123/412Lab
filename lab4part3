@@ -1,0 +1,65 @@
+#include <compiler.h>
+#include <sysclk.h>
+#include <board.h>
+#include <gpio.h>
+#include <delay.h>
+
+#define INCREASING (false)
+#define DECREASING (true)
+#define NUMBER_OF_CYCLES_BEFORE_DUTY_CHANGE (125)
+
+#define FREQUENCY (200)
+
+uint8_t pwmFakeOutTimeStep = 0;
+uint8_t cyclesCompleted = 0;
+bool pwmFakeOutDirectionality = INCREASING;
+int additive = 5;
+
+static void OperatePwmFakeOut(int dutyCycle) {
+	if (pwmFakeOutTimeStep == 99 || pwmFakeOutTimeStep == (100 - dutyCycle)) {
+		gpio_toggle_pin(LED0_GPIO);
+	}
+}
+
+static void IncrementTimeStep(void) {
+	if ( pwmFakeOutTimeStep == 99) {
+		cyclesCompleted = (cyclesCompleted+1) % NUMBER_OF_CYCLES_BEFORE_DUTY_CHANGE;
+	}
+	
+	pwmFakeOutTimeStep = (pwmFakeOutTimeStep + 1) % 100;
+}
+
+static void RestartTimeStep(void) {
+	pwmFakeOutTimeStep = 0;
+	gpio_set_pin_low(LED0_GPIO);
+}
+
+int main(void)
+{	
+	//set system clock to 32MHZ
+	OSC.CTRL |= OSC_RC32MEN_bm | OSC_RC32KEN_bm;
+	while (!(OSC.STATUS & OSC_RC32KRDY_bm));
+	while (!(OSC.STATUS & OSC_RC32MRDY_bm));DFLLRC32M.CTRL = DFLL_ENABLE_bm;
+	CCP = CCP_IOREG_gc;
+	CLK.CTRL = CLK_SCLKSEL_RC32M_gc;
+	OSC.CTRL &= ~OSC_RC2MEN_bm;
+	//now running in 32MHZ
+	
+	sysclk_init();
+	board_init();
+	
+	while (1) {
+		for (int dutyCycle = 15; ; dutyCycle += additive) {
+			for(int x = 0; x < 500; x++) {
+				delay_us( (1.0/FREQUENCY) * 10000 );
+				IncrementTimeStep();
+				OperatePwmFakeOut(dutyCycle);
+			}
+			
+			RestartTimeStep();
+			if (dutyCycle == 95 || dutyCycle == 5) {
+				additive = - additive;
+			}
+		}
+	}
+}
