@@ -1,0 +1,65 @@
+#include <conf_usart_example.h>
+#include <asf.h>
+#include <string.h>
+
+#define FAN_PWM_CHANNEL (0)
+
+int main(void)
+{
+	uint8_t received_byte;
+	char receivedString[4];
+	uint8_t newlineCharacters[] = "\n\r";
+
+	board_init();
+	sysclk_init();
+
+	// USART options.
+	static usart_rs232_options_t USART_SERIAL_OPTIONS = {
+		.baudrate = USART_SERIAL_EXAMPLE_BAUDRATE,
+		.charlength = USART_SERIAL_CHAR_LENGTH,
+		.paritytype = USART_SERIAL_PARITY,
+		.stopbits = USART_SERIAL_STOP_BIT
+	};
+
+	// Initialize usart driver in RS232 mode
+	usart_init_rs232(USART_SERIAL_EXAMPLE, &USART_SERIAL_OPTIONS);
+	
+	struct pwm_config mypwm[4]; //For your PWM configuration –CKH
+	pwm_init(&mypwm[FAN_PWM_CHANNEL], PWM_TCC0, PWM_CH_A, 500);//this is SDA on J1 on the A3BU Xplained
+	pwm_start(&mypwm[FAN_PWM_CHANNEL], 25);
+	
+	receivedString[0] = ' ';
+	receivedString[1] = ' ';
+	receivedString[2] = ' ';
+	receivedString[3] = ' ';
+		
+	while (true) {
+		for( int charCount = 0; ; charCount++) {
+			received_byte = usart_getchar(USART_SERIAL_EXAMPLE);
+			usart_putchar(USART_SERIAL_EXAMPLE, received_byte);
+			
+			if ( received_byte == '\r') {
+				break;
+			}
+			
+			if (charCount < 4) {
+				receivedString[charCount] = received_byte;
+			}
+			else {
+				receivedString[0] = '\0';
+			}
+		}	
+		usart_putchar(USART_SERIAL_EXAMPLE, newlineCharacters[0]);
+		usart_putchar(USART_SERIAL_EXAMPLE, newlineCharacters[1]);
+		
+		if (receivedString[0] == 'l' && receivedString[1] == 'o' && receivedString[2] == 'w') {
+			pwm_start(&mypwm[FAN_PWM_CHANNEL], 23);
+		}	
+		else if (receivedString[0] == 'm' && receivedString[1] == 'e' && receivedString[2] == 'd') {
+			pwm_start(&mypwm[FAN_PWM_CHANNEL], 60);
+		}	
+		else if (receivedString[0] == 'h' && receivedString[1] == 'i' && receivedString[2] == 'g' && receivedString[3] == 'h') {
+			pwm_start(&mypwm[FAN_PWM_CHANNEL], 100);
+		}
+	}
+}
