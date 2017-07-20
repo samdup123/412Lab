@@ -1,0 +1,60 @@
+#define StepperDirectionPin (7)
+#define SteppingPin (6)
+#define ServoPin (11)
+
+#define Steps
+#define Rotations
+#define OneRotationInSteps (400)
+#define StepsPerDiscreteLocation (10)
+#define Once (1)
+#define Twice (2)
+#define ClockWise (HIGH)
+#define CounterClockWise (LOW)
+
+static int currentStepperLocation;
+
+static int ConvertTwoLocationsAndDirectionToNumberOfSteps(int currentLocation, int newLocation, bool direction) {
+  int difference = currentLocation - newLocation;
+  if (difference >= 0 && direction == CounterClockWise) {
+    return difference * StepsPerDiscreteLocation;
+  }
+  else if ( difference >= 0 && direction == ClockWise) {
+    return (400 - difference * StepsPerDiscreteLocation);
+  }
+}
+
+static void SetDirectionOfStepperMotorTo(bool direction) {
+  digitalWrite(StepperDirectionPin, direction);
+}
+
+static void StepMotorToLocation(int newLocation, bool direction) {
+  SetDirectionOfStepperMotorTo(direction);
+  int steps = (currentStepperLocation - newLocation) * 10;
+  for(int i = 0; i < steps; i++) {
+    digitalWrite(SteppingPin, HIGH);
+    delay(1);
+    digitalWrite(SteppingPin, LOW);
+    delay(1);
+  }
+}
+
+static void FullyRotateStepper(int numberOfRotations) {
+    for(int i = 0; i < OneRotationInSteps * numberOfRotations; i++) {
+    digitalWrite(SteppingPin, HIGH);
+    delay(1);
+    digitalWrite(SteppingPin, LOW);
+    delay(1);
+  }
+}
+
+void setup() {
+  Serial.begin(9600);
+  currentStepperLocation = 0;
+  pinMode(StepperDirectionPin, OUTPUT);
+  pinMode(SteppingPin, OUTPUT);
+  pinMode(ServoPin, OUTPUT);
+}
+
+void loop() {
+  Serial.print(ConvertTwoLocationsAndDirectionToNumberOfSteps( 36, 10, CounterClockWise));
+}
