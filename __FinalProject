@@ -1,0 +1,49 @@
+#include <asf.h>
+#include <pwm.h>
+#include <delay.h>
+#include <gpio.h>
+#include <adc.h>
+#include <ioport.h>
+
+#define Steps
+#define FullCircleSteps (400)
+#define SteperDirectionPin 
+#define ClockWise (1)
+#define CounterClockWise (0)
+
+static struct pwm_config uBoltLifterPwmSignal;
+
+static void InitializePwm(void)
+{
+	pwm_init(&uBoltLifterPwmSignal, PWM_TCC0, PWM_CH_A, 500);
+}
+
+static void AttemptToLiftLock(void)
+{
+	pwm_start(&uBoltLifterPwmSignal, 100);
+	delay_ms(30);
+	pwm_stop(&uBoltLifterPwmSignal);
+}
+
+static void SpinLock(int numberOfSteps) {
+	for( int i = 0; i < numberOfSteps; i++) {
+		gpio_set_pin_high(4);
+		delay_us(100);
+		gpio_set_pin_low(4);
+	}
+}
+
+static void LightUpLed(void) {
+	PORTF_DIR = 0b11111111;        //set all pins of port b as outputs
+	PORTF_OUT = 0xFF;             //write data on port
+}
+
+static void EnterFirstTwoValuesOfCombination(void) {
+	
+}
+int main (void)
+{
+	InitializePwm();
+	board_init();
+	LightUpLed();
+}
