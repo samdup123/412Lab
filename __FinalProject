@@ -47,3 +47,43 @@ int main (void)
 	board_init();
 	LightUpLed();
 }
+
+
+// ARDUINO
+
+#define StepperDirectionPin (7)
+#define SteppingPin (6)
+#define ServoPin (11)
+
+#define Steps
+
+static void StepMotor(int steps) {
+  for(int i = 0; i < steps; i++) {
+    digitalWrite(SteppingPin, HIGH);
+    delay(1);
+    digitalWrite(SteppingPin, LOW);
+    delay(1);
+  }
+}
+
+void setup() {
+  pinMode(StepperDirectionPin, OUTPUT);
+  pinMode(SteppingPin, OUTPUT);
+  pinMode(ServoPin, OUTPUT);
+}
+
+void loop() {
+  digitalWrite(StepperDirectionPin, LOW);
+  StepMotor(800 Steps);
+  delay(700);
+  digitalWrite(StepperDirectionPin, HIGH);
+  StepMotor(580 Steps);
+  delay(700);
+   digitalWrite(StepperDirectionPin, LOW);
+  StepMotor(180 Steps);
+  analogWrite(ServoPin, 2);
+  delay(700);
+  analogWrite(ServoPin, 253);
+  delay(700);
+  while(true){}
+}
