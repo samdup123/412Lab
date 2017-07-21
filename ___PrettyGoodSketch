@@ -19,19 +19,15 @@ static int ConvertTwoLocationsAndDirectionToNumberOfSteps(int currentLocation, i
   }
   int difference = currentLocation - newLocation;
   if (difference >= 0 && direction == CounterClockWise) {
-//    Serial.print("ccw\n");
     return difference * StepsPerDiscreteLocation;
   }
   else if (difference >= 0 && direction == ClockWise) {
-//    Serial.print("cw\n");
     return (400 - difference * StepsPerDiscreteLocation);
   }
   else if (difference < 0 && direction == CounterClockWise) {
-//    Serial.print("ccw\n");
     return (400 + difference * StepsPerDiscreteLocation);
   }
   else if (difference < 0 && direction == ClockWise) {
-//    Serial.print("cw\n");
     return (- difference * StepsPerDiscreteLocation);
   }
 }
@@ -83,24 +79,10 @@ void loop() {
     for (int secondValue = 0; secondValue <= 39; secondValue++) {
       FullyRotateStepper(Twice, ClockWise);
       StepMotorToLocation(firstValue, ClockWise);
-      Serial.print("\ncurrentLoc ");
-      Serial.print(currentStepperLocation);
-      Serial.print("\n");
       FullyRotateStepper(Once, CounterClockWise);
       StepMotorToLocation(secondValue, CounterClockWise);
-      Serial.print("\ncurrentLoc ");
-      Serial.print(currentStepperLocation);
-      Serial.print("\n");
       for (int thirdValue = 0; thirdValue <= 39; thirdValue++) {
         StepMotorToLocation(thirdValue, ClockWise);
-        Serial.print(firstValue);
-        Serial.print(" - ");
-        Serial.print(secondValue);
-        Serial.print(" - ");
-        Serial.print(thirdValue);
-        Serial.print(" - currentLoc ");
-        Serial.print(currentStepperLocation);
-        Serial.print("\n");
       }
     }
   }
