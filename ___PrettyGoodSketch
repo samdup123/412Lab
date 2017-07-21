@@ -14,12 +14,37 @@
 static int currentStepperLocation;
 
 static int ConvertTwoLocationsAndDirectionToNumberOfSteps(int currentLocation, int newLocation, bool direction) {
+  if (currentLocation < 0 || newLocation < 0 || currentLocation >= 40 || newLocation >= 40) {
+    Serial.println("ERROR. LOCATION OUT OF BOUNDS!");
+  }
   int difference = currentLocation - newLocation;
   if (difference >= 0 && direction == CounterClockWise) {
+    Serial.print("ccw\n");
     return difference * StepsPerDiscreteLocation;
   }
-  else if ( difference >= 0 && direction == ClockWise) {
+  else if (difference >= 0 && direction == ClockWise) {
+    Serial.print("cw\n");
     return (400 - difference * StepsPerDiscreteLocation);
+  }
+  else if (difference < 0 && direction == CounterClockWise) {
+    Serial.print("ccw\n");
+    return (400 + difference * StepsPerDiscreteLocation);
+  }
+  else if (difference < 0 && direction == ClockWise) {
+    Serial.print("cw\n");
+    return (- difference * StepsPerDiscreteLocation);
+  }
+}
+
+static void SetDirectionOfStepperMotorTo(bool direction) {
+  digitalWrite(StepperDirectionPin, direction);
+}
+
+static void FixCurrentLocation(int newLocation, bool direction) {
+  int difference = currentLocation - newLocation;
+  if (difference >= 0 && direction == CounterClockWise) {
+    Serial.print("ccw\n");
+    currentStepperLocation = difference;
   }
 }
 
@@ -29,7 +54,7 @@ static void SetDirectionOfStepperMotorTo(bool direction) {
 
 static void StepMotorToLocation(int newLocation, bool direction) {
   SetDirectionOfStepperMotorTo(direction);
-  int steps = (currentStepperLocation - newLocation) * 10;
+  int steps = ConvertTwoLocationsAndDirectionToNumberOfSteps(currentStepperLocation, newLocation, direction);
   for(int i = 0; i < steps; i++) {
     digitalWrite(SteppingPin, HIGH);
     delay(1);
@@ -38,23 +63,54 @@ static void StepMotorToLocation(int newLocation, bool direction) {
   }
 }
 
-static void FullyRotateStepper(int numberOfRotations) {
-    for(int i = 0; i < OneRotationInSteps * numberOfRotations; i++) {
-    digitalWrite(SteppingPin, HIGH);
-    delay(1);
-    digitalWrite(SteppingPin, LOW);
-    delay(1);
+static void FullyRotateStepper(int numberOfRotations, int direction) {
+  SetDirectionOfStepperMotorTo(direction);
+  for(int i = 0; i < OneRotationInSteps * numberOfRotations; i++) {
+  digitalWrite(SteppingPin, HIGH);
+  delay(1);
+  digitalWrite(SteppingPin, LOW);
+  delay(1);
   }
 }
 
 void setup() {
   Serial.begin(9600);
+  /*
+   * It is very important that the lock start out pointed at 0
+   */
   currentStepperLocation = 0;
+  
   pinMode(StepperDirectionPin, OUTPUT);
   pinMode(SteppingPin, OUTPUT);
   pinMode(ServoPin, OUTPUT);
 }
 
 void loop() {
-  Serial.print(ConvertTwoLocationsAndDirectionToNumberOfSteps( 36, 10, CounterClockWise));
+  for (int secondValue = 0; secondValue < 39; secondValue++) {
+    FullyRotateStepper(Twice, ClockWise);
+    StepMotorToLocation(firstValue, ClockWise);
+    FullyRotateStepper(Once, CounterClockwise);
+    StepMotorToLocation(secondValue, CounterClockWise);
+    for (int thirdValue = 0; thirdValue < 40; thirdValue++) {
+    
+    }
+  }
+  
+//ial.print("\n\n");
+//  Serial.print("36,10\n");
+//  Serial.print(ConvertTwoLocationsAndDirectionToNumberOfSteps( 36, 10, ClockWise));
+//  Serial.print("\n");  Serial.print("\n");
+//  Serial.print("24,25\n");
+//  Serial.print(ConvertTwoLocationsAndDirectionToNumberOfSteps( 24, 25, CounterClockWise));
+//  Serial.print("\n\n");
+//  Serial.print("24,25\n");
+//  Serial.print(ConvertTwoLocationsAndDirectionToNumberOfSteps( 24, 25, ClockWise));
+//  Serial.print("\n39,0\n");
+//  Serial.print(ConvertTwoLocationsAndDirectionToNumberOfSteps( 39, 0, CounterClockWise));
+//  Serial.print("\n\n");
+//  Serial.print("39,0\n");
+//  Serial.print(ConvertTwoLocationsAndDirectionToNumberOfSteps( 39, 0, ClockWise));
+//  Serial.print("\n");  Serial.print("\n");
+  
+  delay(900);
 }
